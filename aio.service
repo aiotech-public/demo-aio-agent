@@ -6,7 +6,7 @@ After=docker.service
 [Service]
 Type=oneshot
 RemainAfterExit=yes
-WorkingDirectory=/opt/aio-agent
+WorkingDirectory=/opt/demo-aio-agent
 ExecStart=/usr/bin/docker-compose --profile main up -d
 ExecStop=/usr/bin/docker-compose --profile "*" down
 ExecReload=/usr/bin/docker-compose --profile main up -d
