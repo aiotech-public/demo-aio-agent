@@ -1,0 +1,16 @@
+[Unit]
+Description=AIO Agent Daemon
+Requires=docker.service
+After=docker.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+WorkingDirectory=/opt/aio-agent
+ExecStart=/usr/bin/docker-compose --profile main up -d
+ExecStop=/usr/bin/docker-compose --profile "*" down
+ExecReload=/usr/bin/docker-compose --profile main up -d
+TimeoutStartSec=0
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,3 @@
+upstream aio-agent {
+  server aio-agent-spare:7300;
+}
