@@ -19,6 +19,11 @@ services:
       core:
         soft: -1
         hard: -1
+    logging:
+      driver: "json-file"
+      options:
+        max-file: "3"
+        max-size: "1000m"
     profiles: [main]
 
   aio-agent-spare:
@@ -36,6 +41,11 @@ services:
     volumes:
       - /opt/go-cache:/go/cache
       - /opt/go-sessions:/go/sessions
+    logging:
+      driver: "json-file"
+      options:
+        max-file: "3"
+        max-size: "1000m"
     profiles: [spare-agent]
 
   proxy-nginx:
@@ -56,6 +66,11 @@ services:
     volumes:
     - "./volumes/conf.d:/etc/nginx/conf.d:ro"
     - "./volumes/letsencrypt:/opt/letsencrypt:ro"
+    logging:
+      driver: "json-file"
+      options:
+        max-file: "3"
+        max-size: "2000m"
     profiles: [main]
 
   nginx-vts-exporter:
