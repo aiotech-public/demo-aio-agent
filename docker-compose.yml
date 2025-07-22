@@ -66,6 +66,7 @@ services:
     volumes:
     - "./volumes/conf.d:/etc/nginx/conf.d:ro"
     - "./volumes/letsencrypt:/opt/letsencrypt:ro"
+    - "./volumes/html:/usr/local/nginx/html:ro"
     logging:
       driver: "json-file"
       options:
