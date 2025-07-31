@@ -1,7 +1,7 @@
 #!/bin/bash
 cd $PWD
 proxy_status=$(curl -iL http://localhost/ping 2>/dev/null | head -n 1 | cut -d$' ' -f2)
-conf_path="volumes/conf.d"
+conf_path="volumes/nginx/conf.d"
 
 ## selfhelp
 if [[ $proxy_status != 200 ]]; then
@@ -20,10 +20,10 @@ if [[ $pull_result != "QWxyZWFkeSB1cCB0byBkYXRlLgo=" ]]; then
   echo "NEW COMMIT $local_commit_hash `date`" >> /var/log/git.log
   docker-compose --profile spare-agent up -d
   sleep 3 
-  mv $conf_path/upstream.conf $conf_path/upstream && mv $conf_path/upstream-spare $conf_path/upstream-spare.conf && docker exec proxy-nginx nginx -s reload
+  mv $conf_path/regular.conf $conf_path/regular && mv $conf_path/spare $conf_path/spare.conf && docker exec proxy-nginx nginx -s reload
   docker-compose --profile main up -d 
   sleep 3
-  mv $conf_path/upstream $conf_path/upstream.conf && mv $conf_path/upstream-spare.conf $conf_path/upstream-spare && docker exec proxy-nginx nginx -s reload
+  mv $conf_path/regular $conf_path/regular.conf && mv $conf_path/spare.conf $conf_path/spare && docker exec proxy-nginx nginx -s reload
   sleep 3
   docker-compose --profile spare-agent down
   echo "APP RESTARTED `date`" >> /var/log/git.log

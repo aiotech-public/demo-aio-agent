@@ -1,7 +1,7 @@
 services:
   aio-agent:
     container_name: aio-agent
-    image: prodaiotech/agentgo:46a0fbee
+    image: prodaiotech/agentgo:6838c37c
     deploy:
       restart_policy:
         condition: unless-stopped
@@ -9,6 +9,7 @@ services:
     env_file:
       - ./.aio-env
     environment:
+      - LISTEN_TLS_PORT=:7201
       - LISTEN_PORT=:7200
       - METRICS_PORT=:6200
     stop_grace_period: 0.5s
@@ -28,7 +29,7 @@ services:
 
   aio-agent-spare:
     container_name: aio-agent-spare
-    image: prodaiotech/agentgo:46a0fbee
+    image: prodaiotech/agentgo:b16303c4
     deploy:
       restart_policy:
         condition: unless-stopped
@@ -37,6 +38,7 @@ services:
       - ./.aio-env
     environment:
       - LISTEN_PORT=:7300
+      - LISTEN_TLS_PORT:=7301
     stop_grace_period: 0.5s
     volumes:
       - /opt/go-cache:/go/cache
@@ -64,9 +66,10 @@ services:
     - "9300:9300"
     stop_grace_period: 1s
     volumes:
-    - "./volumes/conf.d:/etc/nginx/conf.d:ro"
-    - "./volumes/letsencrypt:/opt/letsencrypt:ro"
-    - "./volumes/html:/usr/local/nginx/html:ro"
+    - "./volumes/nginx/conf.d:/etc/nginx/conf.d:ro"
+    - "./volumes/nginx/stream.d:/etc/nginx/stream.d:ro"
+    - "./volumes/nginx/nginx.conf:/etc/nginx/nginx.conf:ro"
+    - "./volumes/nginx/letsencrypt:/opt/letsencrypt:ro"
     logging:
       driver: "json-file"
       options:
