@@ -1,0 +1,12 @@
+[Unit]
+Description=Periodic self-update for AIO Agent
+
+[Timer]
+OnBootSec=1m
+OnUnitActiveSec=1m
+RandomizedDelaySec=10s
+Persistent=true
+Unit=aio-update.service
+
+[Install]
+WantedBy=timers.target

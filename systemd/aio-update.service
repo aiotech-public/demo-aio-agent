@@ -1,0 +1,12 @@
+[Unit]
+Description=AIO Agent Self-Update
+Requires=docker.service
+After=docker.service network-online.target aio.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/aio-agent
+Environment=PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+ExecStart=/opt/aio-agent/autopull.sh
+TimeoutStartSec=180

@@ -1,16 +1,21 @@
 [Unit]
-Description=AIO Agent Daemon
+Description=AIO Agent Stack
 Requires=docker.service
-After=docker.service
+After=docker.service network-online.target
+Wants=network-online.target
 
 [Service]
 Type=oneshot
 RemainAfterExit=yes
-WorkingDirectory=/opt/demo-aio-agent
-ExecStart=/usr/bin/docker-compose --profile main up -d
-ExecStop=/usr/bin/docker-compose --profile "*" down
-ExecReload=/usr/bin/docker-compose --profile main up -d
-TimeoutStartSec=0
+WorkingDirectory=/opt/aio-agent
+Environment=PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+ExecStart=/opt/aio-agent/bin/aioctl.sh up
+ExecStop=/opt/aio-agent/bin/aioctl.sh down
+ExecReload=/opt/aio-agent/bin/aioctl.sh reload
+Restart=on-failure
+RestartSec=15s
+TimeoutStartSec=300
+TimeoutStopSec=120
 
 [Install]
 WantedBy=multi-user.target
