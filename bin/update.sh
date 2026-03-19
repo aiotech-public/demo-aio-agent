@@ -150,6 +150,29 @@ docker_action() {
   run_action "${DOCKER_TIMEOUT_SECONDS}" docker "$@"
 }
 
+compose_up_main() {
+  compose_action --profile main up -d "$@"
+}
+
+compose_up_spare() {
+  compose_action --profile spare-agent up -d "${SPARE_CONTAINER}"
+}
+
+remove_spare() {
+  if [[ "${DRY_RUN}" == "1" ]]; then
+    SPARE_STARTED=0
+    return 0
+  fi
+
+  if ! run_with_timeout "${DOCKER_TIMEOUT_SECONDS}" docker inspect "${SPARE_CONTAINER}" >/dev/null 2>&1; then
+    SPARE_STARTED=0
+    return 0
+  fi
+
+  compose_action --profile spare-agent rm -sf "${SPARE_CONTAINER}"
+  SPARE_STARTED=0
+}
+
 systemctl_action() {
   run_action "${DOCKER_TIMEOUT_SECONDS}" systemctl "$@"
 }
@@ -185,6 +208,12 @@ container_health() {
     "${container}" 2>/dev/null || true
 }
 
+container_available() {
+  local status
+  status="$(container_health "$1")"
+  [[ "${status}" == "healthy" || "${status}" == "running" ]]
+}
+
 wait_container_healthy() {
   local container="$1"
   local timeout_seconds="$2"
@@ -213,6 +242,29 @@ wait_container_healthy() {
 
   log "ERROR container=${container} did not become healthy status=${status:-unknown}"
   return 1
+}
+
+activate_main_offline() {
+  if [[ "${ACTIVE_TARGET}" == "main" ]]; then
+    return 0
+  fi
+
+  log "WARN restoring main stream config offline before proxy recovery"
+
+  if [[ "${DRY_RUN}" == "1" ]]; then
+    ACTIVE_TARGET="main"
+    return 0
+  fi
+
+  if [[ -f "${SPARE_STREAM_ACTIVE}" ]]; then
+    mv "${SPARE_STREAM_ACTIVE}" "${SPARE_STREAM_INACTIVE}"
+  fi
+
+  if [[ -f "${MAIN_STREAM_INACTIVE}" ]]; then
+    mv "${MAIN_STREAM_INACTIVE}" "${MAIN_STREAM_ACTIVE}"
+  fi
+
+  ACTIVE_TARGET="main"
 }
 
 detect_active_target() {
@@ -341,16 +393,51 @@ perform_self_heal() {
     return 1
   fi
 
-  log "WARN ping failed, restarting ${SERVICE_NAME}"
+  log "WARN ping failed, running state-aware self-heal"
   printf '%s\n' "${now}" >"${SELF_HEAL_MARKER}"
-  systemctl_action restart "${SERVICE_NAME}"
+
+  if [[ "${ACTIVE_TARGET}" == "spare" ]]; then
+    if container_available "${SPARE_CONTAINER}"; then
+      log "INFO active target is spare and spare container is available; bringing proxy/main side up without stopping spare"
+      compose_up_spare
+      compose_up_main "${MAIN_CONTAINER}" "${PROXY_CONTAINER}"
+    else
+      log "WARN active target is spare but spare container is unavailable; restoring main path first"
+      compose_up_main "${MAIN_CONTAINER}"
+      wait_container_healthy "${MAIN_CONTAINER}" "${HEALTH_TIMEOUT_SECONDS}"
+      activate_main_offline
+      compose_up_main "${MAIN_CONTAINER}" "${PROXY_CONTAINER}"
+    fi
+  else
+    compose_up_main
+  fi
 
   if ! wait_ping "${HEALTH_TIMEOUT_SECONDS}"; then
-    log "ERROR self-heal restart did not restore service health"
+    log "ERROR self-heal did not restore service health"
     return 1
   fi
 
-  log "INFO self-heal restart restored service health"
+  log "INFO self-heal restored service health"
+}
+
+reconcile_broken_active_target() {
+  if [[ "${ACTIVE_TARGET}" != "spare" ]]; then
+    return 0
+  fi
+
+  if container_available "${SPARE_CONTAINER}"; then
+    return 0
+  fi
+
+  log "WARN spare config is active but spare container is unavailable; restoring a safe main target before health checks"
+  compose_up_main "${MAIN_CONTAINER}"
+  wait_container_healthy "${MAIN_CONTAINER}" "${HEALTH_TIMEOUT_SECONDS}"
+  activate_main_offline
+  compose_up_main "${MAIN_CONTAINER}" "${PROXY_CONTAINER}"
+  if ! wait_ping "${HEALTH_TIMEOUT_SECONDS}"; then
+    log "ERROR main target did not become reachable after broken-spare recovery"
+    return 1
+  fi
 }
 
 recover_from_spare_if_needed() {
@@ -359,15 +446,14 @@ recover_from_spare_if_needed() {
   fi
 
   log "WARN proxy is already pointing to spare, attempting recovery to steady-state main"
-  compose_action --profile main up -d "${MAIN_CONTAINER}"
+  compose_up_main "${MAIN_CONTAINER}"
   wait_container_healthy "${MAIN_CONTAINER}" "${HEALTH_TIMEOUT_SECONDS}"
   switch_to_main
   if ! wait_ping "${HEALTH_TIMEOUT_SECONDS}"; then
     log "ERROR main target did not become reachable after recovery switch"
     return 1
   fi
-  compose_action --profile spare-agent down
-  SPARE_STARTED=0
+  remove_spare
 }
 
 prepare_target_worktree() {
@@ -529,8 +615,7 @@ rollback() {
   fi
 
   if (( SPARE_STARTED )) && [[ "${ACTIVE_TARGET}" == "main" ]]; then
-    compose_action --profile spare-agent down || true
-    SPARE_STARTED=0
+    remove_spare || true
   fi
 
   if (( UPDATE_APPLIED )); then
@@ -584,6 +669,8 @@ fi
 ACTIVE_TARGET="$(detect_active_target)"
 
 log "INFO update budget max_forward_update_seconds=${MAX_FORWARD_UPDATE_SECONDS} active_target=${ACTIVE_TARGET}"
+
+reconcile_broken_active_target
 
 if ! check_ping; then
   perform_self_heal
@@ -652,7 +739,7 @@ UPDATE_APPLIED=1
 
 run_with_timeout "${COMPOSE_TIMEOUT_SECONDS}" "${COMPOSE_WRAPPER}" --profile main --profile spare-agent config -q
 
-compose_action --profile spare-agent up -d "${SPARE_CONTAINER}"
+compose_up_spare
 SPARE_STARTED=1
 wait_container_healthy "${SPARE_CONTAINER}" "${HEALTH_TIMEOUT_SECONDS}"
 
@@ -662,7 +749,7 @@ if ! wait_ping "${HEALTH_TIMEOUT_SECONDS}"; then
   exit 1
 fi
 
-compose_action --profile main up -d --remove-orphans
+compose_up_main
 wait_container_healthy "${MAIN_CONTAINER}" "${HEALTH_TIMEOUT_SECONDS}"
 
 switch_to_main
@@ -671,8 +758,7 @@ if ! wait_ping "${HEALTH_TIMEOUT_SECONDS}"; then
   exit 1
 fi
 
-compose_action --profile spare-agent down
-SPARE_STARTED=0
+remove_spare
 
 record_success
 UPDATE_SUCCEEDED=1

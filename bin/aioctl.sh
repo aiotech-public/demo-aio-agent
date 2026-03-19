@@ -17,13 +17,13 @@ action="${1:-}"
 
 case "${action}" in
   up)
-    exec "${COMPOSE_WRAPPER}" --profile main up -d --remove-orphans
+    exec "${COMPOSE_WRAPPER}" --profile main up -d
     ;;
   down)
     exec "${COMPOSE_WRAPPER}" --profile main --profile spare-agent down
     ;;
   reload)
-    exec "${COMPOSE_WRAPPER}" --profile main up -d --remove-orphans
+    exec "${COMPOSE_WRAPPER}" --profile main up -d
     ;;
   *)
     usage

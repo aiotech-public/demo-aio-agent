@@ -1,1 +1,13 @@
 .aio-env
+.env
+.env.local
+*.log
+*.pid
+
+secrets/*
+
+runtime/*
+!runtime/.gitkeep
+
+overrides/*
+!overrides/.gitkeep
