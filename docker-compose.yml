@@ -1,7 +1,7 @@
 services:
   aio-agent:
     container_name: aio-agent
-    image: prodaiotech/agentgo:ff6e90e6
+    image: prodaiotech/agentgo:09bcb76d
     pull_policy: missing
     restart: unless-stopped
     env_file:
@@ -35,7 +35,7 @@ services:
 
   aio-agent-spare:
     container_name: aio-agent-spare
-    image: prodaiotech/agentgo:ff6e90e6
+    image: prodaiotech/agentgo:09bcb76d
     pull_policy: missing
     restart: unless-stopped
     env_file:
