@@ -2,9 +2,7 @@ services:
   aio-agent:
     container_name: aio-agent
     image: prodaiotech/agentgo:ff6e90e6
-    deploy:
-      restart_policy:
-        condition: unless-stopped
+    restart: unless-stopped
     pull_policy: always
     env_file:
       - ./.aio-env
@@ -29,9 +27,7 @@ services:
   aio-agent-spare:
     container_name: aio-agent-spare
     image: prodaiotech/agentgo:ff6e90e6
-    deploy:
-      restart_policy:
-        condition: unless-stopped
+    restart: unless-stopped
     pull_policy: always
     env_file:
       - ./.aio-env
