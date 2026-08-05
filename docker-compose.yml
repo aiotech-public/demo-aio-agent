@@ -8,6 +8,7 @@ services:
       - ./.aio-env
     environment:
       - LISTEN_PORT=:7200
+      - LISTEN_TLS_PORT=:7201
       - METRICS_PORT=:6200
     stop_grace_period: 0.5s
     volumes:
@@ -33,6 +34,7 @@ services:
       - ./.aio-env
     environment:
       - LISTEN_PORT=:7300
+      - LISTEN_TLS_PORT=:7301
     stop_grace_period: 0.5s
     volumes:
       - /opt/go-cache:/go/cache
@@ -60,7 +62,9 @@ services:
     - "9300:9300"
     stop_grace_period: 1s
     volumes:
-    - "./volumes/conf.d:/etc/nginx/conf.d:ro"
+    - "./volumes/nginx/conf.d:/etc/nginx/conf.d:ro"
+    - "./volumes/nginx/stream.d:/etc/nginx/stream.d:ro"
+    - "./volumes/nginx/nginx.conf:/etc/nginx/nginx.conf:ro"
     - "./volumes/letsencrypt:/opt/letsencrypt:ro"
     - "./volumes/html:/usr/local/nginx/html:ro"
     logging:
