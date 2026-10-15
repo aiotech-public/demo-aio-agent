@@ -1,10 +1,13 @@
 #!/bin/bash
 cd $PWD
-proxy_status=$(curl -iL http://localhost/ping 2>/dev/null | head -n 1 | cut -d$' ' -f2)
+# Health check: nginx answers on :80 (any HTTP code; 000 = no connection) and the agent container is running.
+# Do not depend on a specific path/status code: the agent serves every path as a regular site request.
+proxy_status=$(curl -s -o /dev/null -m 5 -w '%{http_code}' http://localhost/healthcheck.yml 2>/dev/null)
+agent_running=$(docker inspect -f '{{.State.Running}}' aio-agent 2>/dev/null)
 conf_path="volumes/nginx/stream.d"
 
 ## selfhelp
-if [[ $proxy_status != 200 ]]; then
+if [[ -z "$proxy_status" || "$proxy_status" == "000" || "$agent_running" != "true" ]]; then
   git add . && git stash 
   git pull
   systemctl restart aio.service
