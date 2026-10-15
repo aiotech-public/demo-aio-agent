@@ -1,7 +1,7 @@
 services:
   aio-agent:
     container_name: aio-agent
-    image: prodaiotech/agentgo:3ab58bbc
+    image: prodaiotech/agentgo:c580675b
     deploy:
       restart_policy:
         condition: unless-stopped
@@ -29,7 +29,7 @@ services:
 
   aio-agent-spare:
     container_name: aio-agent-spare
-    image: prodaiotech/agentgo:3ab58bbc
+    image: prodaiotech/agentgo:c580675b
     deploy:
       restart_policy:
         condition: unless-stopped
