@@ -38,7 +38,7 @@ services:
       - ./.aio-env
     environment:
       - LISTEN_PORT=:7300
-      - LISTEN_TLS_PORT:=7301
+      - LISTEN_TLS_PORT=:7301
     stop_grace_period: 0.5s
     volumes:
       - /opt/go-cache:/go/cache
