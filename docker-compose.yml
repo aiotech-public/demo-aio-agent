@@ -25,6 +25,9 @@ services:
       options:
         max-file: "3"
         max-size: "1000m"
+    networks:
+      default:
+        ipv4_address: 172.30.0.10
     profiles: [main]
 
   aio-agent-spare:
@@ -48,6 +51,9 @@ services:
       options:
         max-file: "3"
         max-size: "1000m"
+    networks:
+      default:
+        ipv4_address: 172.30.0.11
     profiles: [spare-agent]
 
   proxy-nginx:
@@ -124,3 +130,13 @@ services:
       - '--collector.meminfo'
       - '--collector.netdev'
     profiles: [main]
+
+# IPv6 test stand: dual-stack compose network (ULA, NAT66 egress via the host's public IPv6);
+# agent containers get static IPv4 addresses because the agent's plain listener is IPv4-only.
+networks:
+  default:
+    enable_ipv6: true
+    ipam:
+      config:
+        - subnet: 172.30.0.0/24
+        - subnet: fd00:a10:1::/64
